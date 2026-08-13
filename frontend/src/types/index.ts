@@ -12,3 +12,9 @@ export interface Service {
   memoryUsage: number
   uptime: number
 }
+
+export interface CreateServiceInput {
+  name: string
+  environment: Environment
+  version: string
+}
