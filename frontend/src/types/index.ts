@@ -19,4 +19,22 @@ export interface CreateServiceInput {
   version: string
 }
 
-export type ServiceAction = 'HEALTH_CHECK' | 'RESTART_SERVICE'
+
+export type JobType =
+  | 'HEALTH_CHECK'
+  | 'RESTART_SERVICE'
+
+export type JobStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'SUCCESS'
+  | 'FAILED'
+
+export interface Job {
+  id: number
+  serviceId: number
+  serviceName: string
+  type: JobType
+  status: JobStatus
+  createdAt: string
+}

@@ -4,6 +4,7 @@ import { mockServices } from '../mocks/services'
 import type {
   CreateServiceInput,
   Environment,
+  Job,
   Service,
   ServiceStatus,
 } from '../types'
@@ -13,6 +14,7 @@ type EnvironmentFilter = 'ALL' | Environment
 type StatusFilter = 'ALL' | ServiceStatus
 
 const ServicesPage = () => {
+    const [jobs, setJobs] = useState<Job[]>([])
     const [isRegistering, setIsRegistering] = useState(false)
     const [services, setServices] = useState<Service[]>(mockServices)
     const [searchTerm, setSearchTerm] = useState('')
@@ -38,6 +40,22 @@ const ServicesPage = () => {
       matchesStatus
     )
   })
+
+  const handleRestart = (service: Service) => {
+    const newJob: Job = {
+        id: Date.now(),
+        serviceId: service.id,
+        serviceName: service.name,
+        type: 'RESTART_SERVICE',
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+    }
+
+    setJobs((currentJobs) => [
+        newJob,
+        ...currentJobs,
+    ])
+    }
 
 // temporary function to handle health check, in a real application this would likely involve an API call
   const handleHealthCheck = (serviceId: number) => {
@@ -215,7 +233,38 @@ const ServicesPage = () => {
             services={filteredServices}
             showActions
             onHealthCheck={handleHealthCheck}
+            onRestart={handleRestart}
         />
+        {jobs.length > 0 && (
+        <section className="mt-8">
+            <h2 className="text-lg font-semibold text-slate-900">
+            Recent Jobs
+            </h2>
+
+            <div className="mt-4 space-y-3">
+            {jobs.map((job) => (
+                <div
+                key={job.id}
+                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                >
+                <div>
+                    <p className="font-medium text-slate-900">
+                    {job.serviceName}
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                    {job.type}
+                    </p>
+                </div>
+
+                <span className="text-sm font-semibold text-amber-600">
+                    {job.status}
+                </span>
+                </div>
+            ))}
+            </div>
+        </section>
+        )}
       </section>
     </main>
   )

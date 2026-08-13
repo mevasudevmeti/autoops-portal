@@ -6,9 +6,10 @@ interface ServiceTableProps {
   services: Service[]
   showActions?: boolean
   onHealthCheck?: (serviceId: number) => void
+  onRestart?: (service: Service) => void
 }
 
-const ServiceTable = ({ services, showActions = false, onHealthCheck }: ServiceTableProps) => {
+const ServiceTable = ({ services, showActions = false, onHealthCheck, onRestart }: ServiceTableProps) => {
 
     if (services.length === 0) {
   return (
@@ -92,11 +93,12 @@ const ServiceTable = ({ services, showActions = false, onHealthCheck }: ServiceT
                 <td className="px-6 py-4 text-sm text-slate-600">
                   {service.memoryUsage}%
                 </td>
-                {showActions && onHealthCheck && (
+                {showActions && onHealthCheck && onRestart && (
                 <td className="px-6 py-4">
                     <ServiceActions
                     service={service}
                     onHealthCheck={onHealthCheck}
+                    onRestart={onRestart}
                     />
                 </td>
                 )}
