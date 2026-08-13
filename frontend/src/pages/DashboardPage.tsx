@@ -1,44 +1,72 @@
+import MetricCard from '../components/MetricCard'
+import ServiceTable from '../components/ServiceTable'
 import { mockServices } from '../mocks/services'
 
 const DashboardPage = () => {
+  const totalServices = mockServices.length
+
+  const healthyServices = mockServices.filter(
+    (service) => service.status === 'HEALTHY',
+  ).length
+
+  const degradedServices = mockServices.filter(
+    (service) => service.status === 'DEGRADED',
+  ).length
+
+  const downServices = mockServices.filter(
+    (service) => service.status === 'DOWN',
+  ).length
+
   return (
-    <main className="p-8">
-      <h1 className="text-3xl font-bold text-slate-900">
-        AutoOps Dashboard
-      </h1>
+    <main className="p-4 sm:p-6 lg:p-8">
+      <header>
+        <h1 className="text-3xl font-bold text-slate-900">
+          AutoOps Dashboard
+        </h1>
 
-      <p className="mt-2 text-slate-600">
-        Monitor services and operational workflows.
-      </p>
+        <p className="mt-2 text-slate-600">
+          Monitor services and operational workflows.
+        </p>
+      </header>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {mockServices.map((service) => (
-          <div
-            key={service.id}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <h2 className="font-semibold text-slate-900">
-              {service.name}
-            </h2>
+      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title="Total Services"
+          value={totalServices}
+          description="Registered services"
+        />
 
-            <p className="mt-1 text-sm text-slate-500">
-              {service.environment}
-            </p>
+        <MetricCard
+          title="Healthy"
+          value={healthyServices}
+          description="Operating normally"
+        />
 
-            <p className="mt-4 text-sm font-medium">
-              {service.status}
-            </p>
+        <MetricCard
+          title="Degraded"
+          value={degradedServices}
+          description="Require attention"
+        />
 
-            <div className="mt-4 text-sm text-slate-600">
-              CPU: {service.cpuUsage}%
-            </div>
+        <MetricCard
+          title="Down"
+          value={downServices}
+          description="Currently unavailable"
+        />
+      </section>
 
-            <div className="text-sm text-slate-600">
-              Memory: {service.memoryUsage}%
-            </div>
-          </div>
-        ))}
-      </div>
+      <section className="mt-10">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Services
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Current status of registered applications.
+          </p>
+        </div>
+        <ServiceTable services={mockServices} />
+      </section>
     </main>
   )
 }

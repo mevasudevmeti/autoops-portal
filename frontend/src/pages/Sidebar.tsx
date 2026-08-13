@@ -21,7 +21,7 @@ const navigationItems = [
 
 const Sidebar = () => {
   return (
-    <aside className="flex min-h-screen w-64 flex-col border-r border-slate-200 bg-slate-950 text-white">
+    <aside className="hidden min-h-screen w-64 flex-col border-r border-slate-200 bg-slate-950 text-white md:flex">
       <div className="border-b border-slate-800 px-6 py-5">
         <h1 className="text-xl font-bold">
           AutoOps
