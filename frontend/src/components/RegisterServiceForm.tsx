@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import type {
   CreateServiceInput,
   Environment,
@@ -9,37 +9,54 @@ interface RegisterServiceFormProps {
   onCancel: () => void
 }
 
+interface FormErrors {
+  name?: string
+  version?: string
+}
+
 const RegisterServiceForm = ({
   onSubmit,
   onCancel,
 }: RegisterServiceFormProps) => {
-  const [name, setName] = useState('')
-  const [environment, setEnvironment] =
-    useState<Environment>('DEV')
-  const [version, setVersion] = useState('')
+    const [name, setName] = useState('')
+    const [environment, setEnvironment] = useState<Environment>('DEV')
+    const [version, setVersion] = useState('')
+    const [errors, setErrors] = useState<FormErrors>({})
+    const validateForm = () => {
+        const newErrors: FormErrors = {}
 
-  const handleSubmit = (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault()
+        if (!name.trim()) {
+            newErrors.name = 'Service name is required.'
+        }
 
-    const trimmedName = name.trim()
-    const trimmedVersion = version.trim()
+        if (!version.trim()) {
+            newErrors.version = 'Version is required.'
+        }
 
-    if (!trimmedName || !trimmedVersion) {
-      return
+        setErrors(newErrors)
+
+        return Object.keys(newErrors).length === 0
     }
+    const handleSubmit = ( event: FormEvent<HTMLFormElement> ) => {
+        event.preventDefault()
 
-    onSubmit({
-      name: trimmedName,
-      environment,
-      version: trimmedVersion,
-    })
+        const isValid = validateForm()
 
-    setName('')
-    setEnvironment('DEV')
-    setVersion('')
-  }
+        if (!isValid) {
+            return
+        }
+
+        onSubmit({
+            name: name.trim(),
+            environment,
+            version: version.trim(),
+        })
+
+        setName('')
+        setEnvironment('DEV')
+        setVersion('')
+        setErrors({})
+        }
 
   return (
     <form
@@ -69,12 +86,34 @@ const RegisterServiceForm = ({
             id="service-name"
             type="text"
             value={name}
-            onChange={(event) =>
-              setName(event.target.value)
-            }
+            onChange={(event) => {
+                setName(event.target.value)
+
+                if (errors.name) {
+                setErrors((currentErrors) => ({
+                    ...currentErrors,
+                    name: undefined,
+                }))
+                }
+            }}
             placeholder="payment-api"
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={
+                errors.name
+                ? 'service-name-error'
+                : undefined
+            }
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
-          />
+            />
+
+            {errors.name && (
+            <p
+                id="service-name-error"
+                className="mt-1 text-sm text-red-600"
+            >
+                {errors.name}
+            </p>
+            )}
         </div>
 
         <div>
@@ -113,12 +152,33 @@ const RegisterServiceForm = ({
             id="service-version"
             type="text"
             value={version}
-            onChange={(event) =>
-              setVersion(event.target.value)
+            aria-invalid={Boolean(errors.version)}
+            aria-describedby={
+            errors.version
+                ? 'service-version-error'
+                : undefined
             }
+            onChange={(event) => {
+                setVersion(event.target.value)
+
+                if (errors.version) {
+                    setErrors((currentErrors) => ({
+                    ...currentErrors,
+                    version: undefined,
+                    }))
+                }
+                }}
             placeholder="1.0.0"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
           />
+          {errors.version && (
+             <p
+                id="service-version-error"
+                className="mt-1 text-sm text-red-600"
+            >
+                {errors.version}
+            </p>
+            )}
         </div>
       </div>
 
