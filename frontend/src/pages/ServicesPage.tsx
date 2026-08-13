@@ -39,6 +39,20 @@ const ServicesPage = () => {
     )
   })
 
+// temporary function to handle health check, in a real application this would likely involve an API call
+  const handleHealthCheck = (serviceId: number) => {
+    setServices((currentServices) =>
+        currentServices.map((service) =>
+        service.id === serviceId
+            ? {
+                ...service,
+                status: 'HEALTHY',
+            }
+            : service,
+        ),
+    )
+    }
+
   // temporary function to handle service registration, in a real application this would likely involve an API call
   const handleRegisterService = (
   input: CreateServiceInput,
@@ -197,7 +211,11 @@ const ServicesPage = () => {
       </section>
 
       <section className="mt-6">
-        <ServiceTable services={filteredServices} />
+        <ServiceTable
+            services={filteredServices}
+            showActions
+            onHealthCheck={handleHealthCheck}
+        />
       </section>
     </main>
   )

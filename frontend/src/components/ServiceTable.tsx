@@ -1,11 +1,14 @@
 import type { Service } from '../types'
 import StatusBadge from './StatusBadge'
+import ServiceActions from './ServiceActions'
 
 interface ServiceTableProps {
   services: Service[]
+  showActions?: boolean
+  onHealthCheck?: (serviceId: number) => void
 }
 
-const ServiceTable = ({ services }: ServiceTableProps) => {
+const ServiceTable = ({ services, showActions = false, onHealthCheck }: ServiceTableProps) => {
 
     if (services.length === 0) {
   return (
@@ -50,6 +53,11 @@ const ServiceTable = ({ services }: ServiceTableProps) => {
               <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Memory
               </th>
+              {showActions && (
+                <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Actions
+                </th>
+                )}
             </tr>
           </thead>
 
@@ -84,6 +92,14 @@ const ServiceTable = ({ services }: ServiceTableProps) => {
                 <td className="px-6 py-4 text-sm text-slate-600">
                   {service.memoryUsage}%
                 </td>
+                {showActions && onHealthCheck && (
+                <td className="px-6 py-4">
+                    <ServiceActions
+                    service={service}
+                    onHealthCheck={onHealthCheck}
+                    />
+                </td>
+                )}
               </tr>
             ))}
           </tbody>

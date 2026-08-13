@@ -18,3 +18,5 @@ export interface CreateServiceInput {
   environment: Environment
   version: string
 }
+
+export type ServiceAction = 'HEALTH_CHECK' | 'RESTART_SERVICE'
