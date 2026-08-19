@@ -1,3 +1,27 @@
 spring:
   application:
     name: portal
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/autoops
+    username: ${DB_USER:autoops}
+    password: ${DB_PASSWORD:autoops}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
