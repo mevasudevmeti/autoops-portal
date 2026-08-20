@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import type {
   CreateServiceInput,
   Environment,
 } from '../types'
 
 interface RegisterServiceFormProps {
-  onSubmit: (service: CreateServiceInput) => void
+  onSubmit: ( service: CreateServiceInput ) => Promise<void>
+
   onCancel: () => void
+  isSubmitting?: boolean
 }
 
 interface FormErrors {
@@ -17,6 +19,7 @@ interface FormErrors {
 const RegisterServiceForm = ({
   onSubmit,
   onCancel,
+  isSubmitting = false,
 }: RegisterServiceFormProps) => {
     const [name, setName] = useState('')
     const [environment, setEnvironment] = useState<Environment>('DEV')
@@ -37,26 +40,30 @@ const RegisterServiceForm = ({
 
         return Object.keys(newErrors).length === 0
     }
-    const handleSubmit = ( event: FormEvent<HTMLFormElement> ) => {
+    const handleSubmit = async ( event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
 
         const isValid = validateForm()
 
         if (!isValid) {
-            return
+          return
         }
 
-        onSubmit({
+        try {
+          await onSubmit({
             name: name.trim(),
             environment,
             version: version.trim(),
-        })
+          })
 
-        setName('')
-        setEnvironment('DEV')
-        setVersion('')
-        setErrors({})
+          setName('')
+          setEnvironment('DEV')
+          setVersion('')
+          setErrors({})
+        } catch {
+          // Parent handles the API error.
         }
+      }
 
   return (
     <form
@@ -193,9 +200,12 @@ const RegisterServiceForm = ({
 
         <button
           type="submit"
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          disabled={isSubmitting}
+          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Register Service
+          {isSubmitting
+            ? 'Registering...'
+            : 'Register Service'}
         </button>
       </div>
     </form>

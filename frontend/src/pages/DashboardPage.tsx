@@ -1,19 +1,24 @@
 import MetricCard from '../components/MetricCard'
 import ServiceTable from '../components/ServiceTable'
-import { mockServices } from '../mocks/services'
+import { useQuery } from '@tanstack/react-query'
+import { getServices } from '../api/servicesApi'
 
 const DashboardPage = () => {
-  const totalServices = mockServices.length
+  const { data: services = [], isLoading, isError } = useQuery({
+  queryKey: ['services'],
+  queryFn: getServices,
+})
+  const totalServices = services.length
 
-  const healthyServices = mockServices.filter(
+  const healthyServices = services.filter(
     (service) => service.status === 'HEALTHY',
   ).length
 
-  const degradedServices = mockServices.filter(
+  const degradedServices = services.filter(
     (service) => service.status === 'DEGRADED',
   ).length
 
-  const downServices = mockServices.filter(
+  const downServices = services.filter(
     (service) => service.status === 'DOWN',
   ).length
 
@@ -65,7 +70,25 @@ const DashboardPage = () => {
             Current status of registered applications.
           </p>
         </div>
-        <ServiceTable services={mockServices} />
+        {isLoading && (
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+            <p className="text-sm text-slate-500">
+              Loading services...
+            </p>
+          </div>
+        )}
+
+        {isError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm text-red-700">
+              Unable to load services.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !isError && (
+          <ServiceTable services={services} />
+        )}
       </section>
     </main>
   )

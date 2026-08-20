@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import ServiceTable from '../components/ServiceTable'
-import { mockServices } from '../mocks/services'
 import type {
   CreateServiceInput,
   Environment,
@@ -9,6 +8,16 @@ import type {
   ServiceStatus,
 } from '../types'
 import RegisterServiceForm from '../components/RegisterServiceForm'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+
+import {
+  createService,
+  getServices,
+} from '../api/servicesApi'
 
 type EnvironmentFilter = 'ALL' | Environment
 type StatusFilter = 'ALL' | ServiceStatus
@@ -16,10 +25,28 @@ type StatusFilter = 'ALL' | ServiceStatus
 const ServicesPage = () => {
     const [jobs, setJobs] = useState<Job[]>([])
     const [isRegistering, setIsRegistering] = useState(false)
-    const [services, setServices] = useState<Service[]>(mockServices)
+    
     const [searchTerm, setSearchTerm] = useState('')
     const [environment, setEnvironment] = useState<EnvironmentFilter>('ALL')
     const [status, setStatus] = useState<StatusFilter>('ALL')
+    const queryClient = useQueryClient()
+
+    const { data: services = [], isLoading, isError } = useQuery({
+            queryKey: ['services'],
+            queryFn: getServices,
+          })
+
+          const createServiceMutation = useMutation({
+        mutationFn: createService,
+
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: ['services'],
+          })
+
+          setIsRegistering(false)
+        },
+      })
 
     const filteredServices = services.filter((service) => {
     const matchesSearch = service.name
@@ -41,68 +68,12 @@ const ServicesPage = () => {
     )
   })
 
-  const handleRestart = (service: Service) => {
-    const newJob: Job = {
-        id: Date.now(),
-        serviceId: service.id,
-        serviceName: service.name,
-        type: 'RESTART_SERVICE',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
+  
+  const handleRegisterService = async (
+      input: CreateServiceInput,
+    ) => {
+      await createServiceMutation.mutateAsync(input)
     }
-
-    setJobs((currentJobs) => [
-        newJob,
-        ...currentJobs,
-    ])
-    }
-
-// temporary function to handle health check, in a real application this would likely involve an API call
-  const handleHealthCheck = (serviceId: number) => {
-    setServices((currentServices) =>
-        currentServices.map((service) =>
-        service.id === serviceId
-            ? {
-                ...service,
-                status: 'HEALTHY',
-            }
-            : service,
-        ),
-    )
-    }
-
-  // temporary function to handle service registration, in a real application this would likely involve an API call
-  const handleRegisterService = (
-  input: CreateServiceInput,
-) => {
-  setServices((currentServices) => {
-    const nextId =
-      Math.max(
-        0,
-        ...currentServices.map(
-          (service) => service.id,
-        ),
-      ) + 1
-
-    const newService: Service = {
-      id: nextId,
-      name: input.name,
-      environment: input.environment,
-      version: input.version,
-      status: 'HEALTHY',
-      cpuUsage: 0,
-      memoryUsage: 0,
-      uptime: 100,
-    }
-
-    return [
-      ...currentServices,
-      newService,
-    ]
-  })
-
-  setIsRegistering(false)
-}
 
   const handleClearFilters = () => {
     setSearchTerm('')
@@ -132,11 +103,20 @@ const ServicesPage = () => {
         </header>
         {isRegistering && (
             <RegisterServiceForm
-                onSubmit={handleRegisterService}
-                onCancel={() =>
+              onSubmit={handleRegisterService}
+              onCancel={() =>
                 setIsRegistering(false)
-                }
+              }
+              isSubmitting={
+                createServiceMutation.isPending
+              }
             />
+        )}
+        {createServiceMutation.isError && (
+          <p className="mt-3 text-sm text-red-600">
+            Unable to register service. Please check the
+            details and try again.
+          </p>
         )}
 
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -229,12 +209,25 @@ const ServicesPage = () => {
       </section>
 
       <section className="mt-6">
-        <ServiceTable
-            services={filteredServices}
-            showActions
-            onHealthCheck={handleHealthCheck}
-            onRestart={handleRestart}
-        />
+        {isLoading && (
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+            <p className="text-sm text-slate-500">
+              Loading services...
+            </p>
+          </div>
+        )}
+
+        {isError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm text-red-700">
+              Unable to load services.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !isError && (
+          <ServiceTable services={filteredServices} />
+        )}
         {jobs.length > 0 && (
         <section className="mt-8">
             <h2 className="text-lg font-semibold text-slate-900">
