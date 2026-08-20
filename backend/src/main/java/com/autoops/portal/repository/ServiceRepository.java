@@ -17,4 +17,10 @@ public interface ServiceRepository extends JpaRepository<ServiceEntity, Long> {
             String name,
             Environment environment
     );
+
+    boolean existsByNameAndEnvironmentAndIdNot(
+            String name,
+            Environment environment,
+            Long id
+    );
 }

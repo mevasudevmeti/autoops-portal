@@ -8,7 +8,7 @@ import com.autoops.portal.exception.DuplicateServiceException;
 import com.autoops.portal.exception.ServiceNotFoundException;
 import com.autoops.portal.repository.ServiceRepository;
 import org.springframework.stereotype.Service;
-
+import com.autoops.portal.dto.UpdateServiceRequest;
 import java.util.List;
 
 @Service
@@ -92,5 +92,52 @@ public class ServiceService {
                 service.getMemoryUsage(),
                 service.getUptime()
         );
+    }
+
+    public ServiceResponse updateService(
+            Long id,
+            UpdateServiceRequest request
+    ) {
+        ServiceEntity service = serviceRepository
+                .findById(id)
+                .orElseThrow(
+                        () -> new ServiceNotFoundException(id)
+                );
+
+        String normalizedName = request.getName().trim();
+        String normalizedVersion = request.getVersion().trim();
+
+        boolean duplicate =
+                serviceRepository.existsByNameAndEnvironmentAndIdNot(
+                        normalizedName,
+                        request.getEnvironment(),
+                        id
+                );
+
+        if (duplicate) {
+            throw new DuplicateServiceException(
+                    normalizedName,
+                    request.getEnvironment()
+            );
+        }
+
+        service.setName(normalizedName);
+        service.setEnvironment(request.getEnvironment());
+        service.setVersion(normalizedVersion);
+
+        ServiceEntity updated =
+                serviceRepository.save(service);
+
+        return toResponse(updated);
+    }
+
+    public void deleteService(Long id) {
+        ServiceEntity service = serviceRepository
+                .findById(id)
+                .orElseThrow(
+                        () -> new ServiceNotFoundException(id)
+                );
+
+        serviceRepository.delete(service);
     }
 }
