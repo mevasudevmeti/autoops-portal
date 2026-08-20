@@ -5,11 +5,11 @@ import ServiceActions from './ServiceActions'
 interface ServiceTableProps {
   services: Service[]
   showActions?: boolean
-  onHealthCheck?: (serviceId: number) => void
-  onRestart?: (service: Service) => void
+  onEdit?: (service: Service) => void
+  onDelete?: (service: Service) => void
 }
 
-const ServiceTable = ({ services, showActions = false, onHealthCheck, onRestart }: ServiceTableProps) => {
+const ServiceTable = ({ services, showActions = false, onEdit, onDelete }: ServiceTableProps) => {
 
     if (services.length === 0) {
   return (
@@ -93,14 +93,33 @@ const ServiceTable = ({ services, showActions = false, onHealthCheck, onRestart 
                 <td className="px-6 py-4 text-sm text-slate-600">
                   {service.memoryUsage}%
                 </td>
-                {showActions && onHealthCheck && onRestart && (
+                {showActions && (
                 <td className="px-6 py-4">
                     <ServiceActions
                     service={service}
-                    onHealthCheck={onHealthCheck}
-                    onRestart={onRestart}
                     />
                 </td>
+                )}
+                {showActions && (
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEdit?.(service)}
+                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onDelete?.(service)}
+                        className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 )}
               </tr>
             ))}

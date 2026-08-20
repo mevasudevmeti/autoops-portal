@@ -16,8 +16,12 @@ import {
 
 import {
   createService,
+  deleteService,
   getServices,
+  updateService,
+  type UpdateServiceInput,
 } from '../api/servicesApi'
+import EditServiceForm from '../components/EditServiceForm'
 
 type EnvironmentFilter = 'ALL' | Environment
 type StatusFilter = 'ALL' | ServiceStatus
@@ -25,7 +29,7 @@ type StatusFilter = 'ALL' | ServiceStatus
 const ServicesPage = () => {
     const [jobs, setJobs] = useState<Job[]>([])
     const [isRegistering, setIsRegistering] = useState(false)
-    
+    const [editingService, setEditingService] = useState<Service | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [environment, setEnvironment] = useState<EnvironmentFilter>('ALL')
     const [status, setStatus] = useState<StatusFilter>('ALL')
@@ -68,7 +72,51 @@ const ServicesPage = () => {
     )
   })
 
-  
+const updateServiceMutation = useMutation({
+        mutationFn: ({
+          serviceId,
+          input,
+        }: {
+          serviceId: number
+          input: UpdateServiceInput
+        }) => updateService(serviceId, input),
+
+        onSuccess: async () => {
+          await queryClient.invalidateQueries({
+            queryKey: ['services'],
+          })
+
+          setEditingService(null)
+        },
+      })
+
+      const handleUpdateService = async (
+      serviceId: number,
+      input: UpdateServiceInput,
+    ) => {
+      await updateServiceMutation.mutateAsync({
+        serviceId,
+        input,
+      })
+    }
+
+    const handleEditService = (
+        service: Service,
+      ) => {
+        setIsRegistering(false)
+        setEditingService(service)
+      }
+
+  const deleteServiceMutation = useMutation({
+      mutationFn: deleteService,
+
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: ['services'],
+        })
+      },
+    })
+
   const handleRegisterService = async (
       input: CreateServiceInput,
     ) => {
@@ -80,6 +128,22 @@ const ServicesPage = () => {
     setEnvironment('ALL')
     setStatus('ALL')
   }
+
+  const handleDeleteService = async (
+      service: Service,
+    ) => {
+      const confirmed = window.confirm(
+        `Delete ${service.name} from ${service.environment}?`,
+      )
+
+      if (!confirmed) {
+        return
+      }
+
+      await deleteServiceMutation.mutateAsync(
+        service.id,
+      )
+    }
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
@@ -95,12 +159,27 @@ const ServicesPage = () => {
 
             <button
                 type="button"
-                onClick={() => setIsRegistering(true)}
+                onClick={() => {
+                  setEditingService(null)
+                  setIsRegistering(true)
+                }}
                 className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 sm:self-auto"
             >
                 Register Service
             </button>
         </header>
+        {editingService && (
+            <EditServiceForm
+              service={editingService}
+              onSubmit={handleUpdateService}
+              onCancel={() =>
+                setEditingService(null)
+              }
+              isSubmitting={
+                updateServiceMutation.isPending
+              }
+            />
+          )}
         {isRegistering && (
             <RegisterServiceForm
               onSubmit={handleRegisterService}
@@ -226,7 +305,12 @@ const ServicesPage = () => {
         )}
 
         {!isLoading && !isError && (
-          <ServiceTable services={filteredServices} />
+          <ServiceTable
+              services={filteredServices}
+              showActions
+              onEdit={handleEditService}
+              onDelete={handleDeleteService}
+            />
         )}
         {jobs.length > 0 && (
         <section className="mt-8">
@@ -253,6 +337,20 @@ const ServicesPage = () => {
                 <span className="text-sm font-semibold text-amber-600">
                     {job.status}
                 </span>
+                {editingService && (
+                  <EditServiceForm
+                    service={editingService}
+                    onSubmit={handleUpdateService}
+                    onCancel={() => setEditingService(null)}
+                    isSubmitting={updateServiceMutation.isPending}
+                  />
+                )}
+                {updateServiceMutation.isError && (
+                  <p className="mt-3 text-sm text-red-600">
+                    Unable to update service.
+                    Please check the details and try again.
+                  </p>
+                )}
                 </div>
             ))}
             </div>
