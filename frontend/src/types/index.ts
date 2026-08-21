@@ -11,12 +11,14 @@ export interface Service {
   cpuUsage: number
   memoryUsage: number
   uptime: number
+  healthUrl: string | null
 }
 
 export interface CreateServiceInput {
   name: string
   environment: Environment
   version: string
+  healthUrl: string | null
 }
 
 

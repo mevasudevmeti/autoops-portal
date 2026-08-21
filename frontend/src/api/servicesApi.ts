@@ -9,6 +9,7 @@ export interface UpdateServiceInput {
   name: string
   environment: Environment
   version: string
+  healthUrl: string | null
 }
 
 export const getServices = async (): Promise<Service[]> => {

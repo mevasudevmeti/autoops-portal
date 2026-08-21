@@ -30,7 +30,7 @@ const EditServiceForm = ({
   isSubmitting = false,
 }: EditServiceFormProps) => {
   const [name, setName] = useState(service.name)
-
+    const [healthUrl, setHealthUrl] = useState(service.healthUrl ?? '')
   const [environment, setEnvironment] =
     useState<Environment>(service.environment)
 
@@ -69,9 +69,10 @@ const EditServiceForm = ({
 
     try {
       await onSubmit(service.id, {
-        name: name.trim(),
-        environment,
-        version: version.trim(),
+          name: name.trim(),
+          environment,
+          version: version.trim(),
+          healthUrl: healthUrl.trim() || null,
       })
     } catch {
       // The parent mutation can display the API error.

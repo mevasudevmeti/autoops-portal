@@ -14,6 +14,7 @@ interface RegisterServiceFormProps {
 interface FormErrors {
   name?: string
   version?: string
+  healthUrl?: string
 }
 
 const RegisterServiceForm = ({
@@ -24,6 +25,7 @@ const RegisterServiceForm = ({
     const [name, setName] = useState('')
     const [environment, setEnvironment] = useState<Environment>('DEV')
     const [version, setVersion] = useState('')
+    const [healthUrl, setHealthUrl] = useState('')
     const [errors, setErrors] = useState<FormErrors>({})
     const validateForm = () => {
         const newErrors: FormErrors = {}
@@ -35,6 +37,17 @@ const RegisterServiceForm = ({
         if (!version.trim()) {
             newErrors.version = 'Version is required.'
         }
+        if (!healthUrl.trim()) {
+            newErrors.healthUrl =
+              'Health URL is required.'
+          } else if (
+            !/^https?:\/\/.+/.test(
+              healthUrl.trim(),
+            )
+          ) {
+            newErrors.healthUrl =
+              'Enter a valid HTTP or HTTPS URL.'
+          }
 
         setErrors(newErrors)
 
@@ -54,11 +67,13 @@ const RegisterServiceForm = ({
             name: name.trim(),
             environment,
             version: version.trim(),
+            healthUrl: healthUrl.trim() || null,
           })
 
           setName('')
           setEnvironment('DEV')
           setVersion('')
+          setHealthUrl('')
           setErrors({})
         } catch {
           // Parent handles the API error.
@@ -80,7 +95,7 @@ const RegisterServiceForm = ({
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div>
           <label
             htmlFor="service-name"
@@ -186,6 +201,49 @@ const RegisterServiceForm = ({
                 {errors.version}
             </p>
             )}
+        </div>
+        <div>
+          <label
+            htmlFor="service-health-url"
+            className="mb-2 block text-sm font-medium text-slate-700"
+          >
+            Health URL
+          </label>
+
+          <input
+            id="service-health-url"
+            type="url"
+            value={healthUrl}
+            onChange={(event) => {
+              setHealthUrl(event.target.value)
+
+              if (errors.healthUrl) {
+                setErrors((currentErrors) => ({
+                  ...currentErrors,
+                  healthUrl: undefined,
+                }))
+              }
+            }}
+            placeholder="http://localhost:8080/actuator/health"
+            aria-invalid={
+              Boolean(errors.healthUrl)
+            }
+            aria-describedby={
+              errors.healthUrl
+                ? 'service-health-url-error'
+                : undefined
+            }
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+          />
+
+          {errors.healthUrl && (
+            <p
+              id="service-health-url-error"
+              className="mt-1 text-sm text-red-600"
+            >
+              {errors.healthUrl}
+            </p>
+          )}
         </div>
       </div>
 
