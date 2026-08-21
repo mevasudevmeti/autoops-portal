@@ -32,6 +32,12 @@ public class ServiceEntity {
     @Column(nullable = false, length = 50)
     private String version;
 
+    @Column(
+            name = "health_url",
+            length = 500
+    )
+    private String healthUrl;
+
     @Column(name = "cpu_usage", nullable = false)
     private double cpuUsage = 0.0;
 
@@ -106,5 +112,13 @@ public class ServiceEntity {
 
     public void setUptime(double uptime) {
         this.uptime = uptime;
+    }
+
+    public String getHealthUrl() {
+        return healthUrl;
+    }
+
+    public void setHealthUrl(String healthUrl) {
+        this.healthUrl = healthUrl;
     }
 }

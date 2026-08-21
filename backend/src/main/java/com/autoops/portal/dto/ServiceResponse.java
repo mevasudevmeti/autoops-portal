@@ -13,6 +13,7 @@ public class ServiceResponse {
     private double cpuUsage;
     private double memoryUsage;
     private double uptime;
+    private String healthUrl;
 
     public ServiceResponse(
             Long id,
@@ -20,6 +21,7 @@ public class ServiceResponse {
             Environment environment,
             ServiceStatus status,
             String version,
+            String healthUrl,
             double cpuUsage,
             double memoryUsage,
             double uptime
@@ -29,6 +31,7 @@ public class ServiceResponse {
         this.environment = environment;
         this.status = status;
         this.version = version;
+        this.healthUrl = healthUrl;
         this.cpuUsage = cpuUsage;
         this.memoryUsage = memoryUsage;
         this.uptime = uptime;
@@ -64,5 +67,9 @@ public class ServiceResponse {
 
     public double getUptime() {
         return uptime;
+    }
+
+    public String getHealthUrl() {
+        return healthUrl;
     }
 }

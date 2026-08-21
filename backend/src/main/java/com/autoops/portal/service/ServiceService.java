@@ -50,6 +50,10 @@ public class ServiceService {
                 .getVersion()
                 .trim();
 
+        String normalizedHealthUrl = request
+                .getHealthUrl()
+                .trim();
+
         boolean alreadyExists =
                 serviceRepository.existsByNameAndEnvironment(
                         normalizedName,
@@ -72,6 +76,8 @@ public class ServiceService {
         service.setCpuUsage(0.0);
         service.setMemoryUsage(0.0);
         service.setUptime(100.0);
+        service.setHealthUrl(normalizedHealthUrl);
+
 
         ServiceEntity savedService =
                 serviceRepository.save(service);
@@ -88,6 +94,7 @@ public class ServiceService {
                 service.getEnvironment(),
                 service.getStatus(),
                 service.getVersion(),
+                service.getHealthUrl(),
                 service.getCpuUsage(),
                 service.getMemoryUsage(),
                 service.getUptime()
@@ -106,7 +113,7 @@ public class ServiceService {
 
         String normalizedName = request.getName().trim();
         String normalizedVersion = request.getVersion().trim();
-
+        String normalizedHealthUrl = request.getHealthUrl().trim();
         boolean duplicate =
                 serviceRepository.existsByNameAndEnvironmentAndIdNot(
                         normalizedName,
@@ -124,7 +131,7 @@ public class ServiceService {
         service.setName(normalizedName);
         service.setEnvironment(request.getEnvironment());
         service.setVersion(normalizedVersion);
-
+        service.setHealthUrl(normalizedHealthUrl);
         ServiceEntity updated =
                 serviceRepository.save(service);
 
