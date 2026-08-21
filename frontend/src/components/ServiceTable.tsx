@@ -7,9 +7,12 @@ interface ServiceTableProps {
   showActions?: boolean
   onEdit?: (service: Service) => void
   onDelete?: (service: Service) => void
+  onHealthCheck?: (
+    serviceId: number,
+  ) => Promise<void>
 }
 
-const ServiceTable = ({ services, showActions = false, onEdit, onDelete }: ServiceTableProps) => {
+const ServiceTable = ({ services, showActions = false, onEdit, onDelete, onHealthCheck }: ServiceTableProps) => {
 
     if (services.length === 0) {
   return (
@@ -94,30 +97,42 @@ const ServiceTable = ({ services, showActions = false, onEdit, onDelete }: Servi
                   {service.memoryUsage}%
                 </td>
                 {showActions && (
-                <td className="px-6 py-4">
-                    <ServiceActions
-                    service={service}
-                    />
-                </td>
-                )}
-                {showActions && (
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
+                      {onHealthCheck && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onHealthCheck(service.id)
+                          }
+                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Health Check
+                        </button>
+                      )}
+                     {onEdit && (
                       <button
                         type="button"
-                        onClick={() => onEdit?.(service)}
+                        onClick={() =>
+                          onEdit(service)
+                        }
                         className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
                       >
                         Edit
                       </button>
+                    )}
 
+                    {onDelete && (
                       <button
                         type="button"
-                        onClick={() => onDelete?.(service)}
+                        onClick={() =>
+                          onDelete(service)
+                        }
                         className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
                       >
                         Delete
                       </button>
+                    )}
                     </div>
                   </td>
                 )}

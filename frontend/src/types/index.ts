@@ -38,5 +38,8 @@ export interface Job {
   serviceName: string
   type: JobType
   status: JobStatus
+  message: string | null
   createdAt: string
+  startedAt: string | null
+  completedAt: string | null
 }

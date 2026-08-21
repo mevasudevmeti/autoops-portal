@@ -15,6 +15,7 @@ import {
 } from '@tanstack/react-query'
 
 import {
+  runHealthCheck,
   createService,
   deleteService,
   getServices,
@@ -117,6 +118,29 @@ const updateServiceMutation = useMutation({
       },
     })
 
+    const healthCheckMutation = useMutation({
+        mutationFn: runHealthCheck,
+
+        onSuccess: async () => {
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: ['services'],
+            }),
+
+            queryClient.invalidateQueries({
+              queryKey: ['jobs'],
+            }),
+          ])
+        },
+      })
+
+      const handleHealthCheck = async (
+        serviceId: number,
+      ) => {
+        await healthCheckMutation.mutateAsync(
+          serviceId,
+        )
+      }
   const handleRegisterService = async (
       input: CreateServiceInput,
     ) => {
@@ -310,6 +334,7 @@ const updateServiceMutation = useMutation({
               showActions
               onEdit={handleEditService}
               onDelete={handleDeleteService}
+              onHealthCheck={handleHealthCheck}
             />
         )}
         {jobs.length > 0 && (

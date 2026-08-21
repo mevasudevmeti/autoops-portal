@@ -1,6 +1,7 @@
 import type {
   CreateServiceInput,
   Environment,
+  Job,
   Service,
 } from '../types'
 import apiClient from './client'
@@ -49,4 +50,14 @@ export const deleteService = async (
   await apiClient.delete(
     `/services/${serviceId}`,
   )
+}
+
+export const runHealthCheck = async (
+  serviceId: number,
+): Promise<Job> => {
+  const response = await apiClient.post<Job>(
+    `/services/${serviceId}/health-check`,
+  )
+
+  return response.data
 }

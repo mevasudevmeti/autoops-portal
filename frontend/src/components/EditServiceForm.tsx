@@ -21,6 +21,7 @@ interface EditServiceFormProps {
 interface FormErrors {
   name?: string
   version?: string
+  healthUrl?: string
 }
 
 const EditServiceForm = ({
@@ -51,6 +52,18 @@ const EditServiceForm = ({
       newErrors.version = 'Version is required.'
     }
 
+    if (!healthUrl.trim()) {
+            newErrors.healthUrl =
+            'Health URL is required.'
+        } else if (
+            !/^https?:\/\/.+/.test(
+            healthUrl.trim(),
+            )
+        ) {
+            newErrors.healthUrl =
+            'Health URL must start with http:// or https://'
+        }
+        
     setErrors(newErrors)
 
     return Object.keys(newErrors).length === 0
@@ -94,7 +107,7 @@ const EditServiceForm = ({
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div>
           <label
             htmlFor="edit-service-name"
@@ -209,6 +222,50 @@ const EditServiceForm = ({
           )}
         </div>
       </div>
+
+        <div>
+            <label
+                htmlFor="edit-service-health-url"
+                className="mb-2 block text-sm font-medium text-slate-700"
+            >
+                Health URL
+            </label>
+
+            <input
+                id="edit-service-health-url"
+                type="url"
+                value={healthUrl}
+                onChange={(event) => {
+                setHealthUrl(event.target.value)
+
+                if (errors.healthUrl) {
+                    setErrors((currentErrors) => ({
+                    ...currentErrors,
+                    healthUrl: undefined,
+                    }))
+                }
+                }}
+                placeholder="http://localhost:8080/actuator/health"
+                aria-invalid={
+                Boolean(errors.healthUrl)
+                }
+                aria-describedby={
+                errors.healthUrl
+                    ? 'edit-service-health-url-error'
+                    : undefined
+                }
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            />
+
+            {errors.healthUrl && (
+                <p
+                id="edit-service-health-url-error"
+                className="mt-1 text-sm text-red-600"
+                >
+                {errors.healthUrl}
+                </p>
+            )}
+        </div>
 
       <div className="mt-6 flex justify-end gap-3">
         <button
