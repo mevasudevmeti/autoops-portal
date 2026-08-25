@@ -20,12 +20,12 @@ public class HealthCheckService {
 
     private final ServiceRepository serviceRepository;
     private final JobRepository jobRepository;
-    private final HealthCheckClient healthCheckClient;
+    private final HealthCheckJobExecutor healthCheckJobExecutor;
 
     public HealthCheckService(
             ServiceRepository serviceRepository,
             JobRepository jobRepository,
-            HealthCheckClient healthCheckClient
+            HealthCheckJobExecutor healthCheckJobExecutor
     ) {
         this.serviceRepository =
                 serviceRepository;
@@ -33,98 +33,67 @@ public class HealthCheckService {
         this.jobRepository =
                 jobRepository;
 
-        this.healthCheckClient =
-                healthCheckClient;
+        this.healthCheckJobExecutor = healthCheckJobExecutor;
     }
 
     public JobResponse runHealthCheck(
             Long serviceId
     ) {
-        ServiceEntity service =
-                serviceRepository
-                        .findById(serviceId)
-                        .orElseThrow(
-                                () ->
-                                        new ServiceNotFoundException(
-                                                serviceId
-                                        )
-                        );
+        ServiceEntity service = serviceRepository
+                .findById(serviceId)
+                .orElseThrow(
+                        () -> new ServiceNotFoundException(
+                                serviceId
+                        )
+                );
 
-        JobEntity job = new JobEntity();
+        String healthUrl =
+                service.getHealthUrl();
+
+        JobEntity job =
+                new JobEntity();
 
         job.setService(service);
         job.setType(JobType.HEALTH_CHECK);
         job.setStatus(JobStatus.PENDING);
-        job.setMessage(
-                "Health check queued"
-        );
+        job.setMessage("Health check queued");
 
-        job = jobRepository.save(job);
-
-        job.setStatus(JobStatus.RUNNING);
-        job.setStartedAt(Instant.now());
-        job.setMessage(
-                "Checking service health"
-        );
-
-        jobRepository.save(job);
-
-        String healthUrl =
-                service.getHealthUrl();
+        JobEntity savedJob =
+                jobRepository.save(job);
 
         if (
                 healthUrl == null
                         || healthUrl.isBlank()
         ) {
-            job.setStatus(JobStatus.FAILED);
-            job.setMessage(
-                    "No health URL configured"
-            );
-            job.setCompletedAt(Instant.now());
-
-            JobEntity failedJob =
-                    jobRepository.save(job);
-
-            return toResponse(failedJob);
-        }
-
-        HealthCheckResult result =
-                healthCheckClient.check(
-                        healthUrl
-                );
-
-        if (result.healthy()) {
-            job.setStatus(
-                    JobStatus.SUCCESS
-            );
-
-            service.setStatus(
-                    ServiceStatus.HEALTHY
-            );
-        } else {
-            job.setStatus(
+            savedJob.setStatus(
                     JobStatus.FAILED
             );
 
-            service.setStatus(
-                    ServiceStatus.DOWN
+            savedJob.setMessage(
+                    "No health URL configured"
+            );
+
+            savedJob.setCompletedAt(
+                    Instant.now()
+            );
+
+            JobEntity failedJob =
+                    jobRepository.save(
+                            savedJob
+                    );
+
+            return toResponse(
+                    failedJob
             );
         }
 
-        job.setMessage(
-                result.message()
+        healthCheckJobExecutor.execute(
+                savedJob.getId(),
+                service.getId(),
+                healthUrl
         );
 
-        job.setCompletedAt(
-                Instant.now()
-        );
-
-        serviceRepository.save(service);
-
-        JobEntity completedJob =
-                jobRepository.save(job);
-
-        return toResponse(completedJob);
+        return toResponse(savedJob);
     }
 
     private JobResponse toResponse(
