@@ -4,6 +4,7 @@ import DashboardPage from './pages/DashboardPage'
 import JobsPage from './pages/JobsPage'
 import LogsPage from './pages/LogsPage'
 import ServicesPage from './pages/ServicesPage'
+import AuditPage from './pages/AuditPage'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="services" element={<ServicesPage />} />
         <Route path="jobs" element={<JobsPage />} />
         <Route path="logs" element={<LogsPage />} />
+        <Route path="audit" element={<AuditPage />} />
       </Route>
     </Routes>
   )

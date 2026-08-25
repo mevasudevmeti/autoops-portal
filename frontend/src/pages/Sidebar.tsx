@@ -17,6 +17,10 @@ const navigationItems = [
     label: 'Logs',
     path: '/logs',
   },
+  {
+    label: 'Audit',
+    path: '/audit',
+  },
 ]
 
 const Sidebar = () => {

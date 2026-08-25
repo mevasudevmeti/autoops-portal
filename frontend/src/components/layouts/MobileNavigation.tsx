@@ -17,12 +17,16 @@ const navigationItems = [
     label: 'Logs',
     path: '/logs',
   },
+  {
+    label: 'Audit',
+    path: '/audit',
+  },
 ]
 
 const MobileNavigation = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white md:hidden">
-      <ul className="grid grid-cols-4">
+      <ul className="grid grid-cols-5">
         {navigationItems.map((item) => (
           <li key={item.path}>
             <NavLink

@@ -1,6 +1,6 @@
 import type { Service } from '../types'
 import StatusBadge from './StatusBadge'
-import ServiceActions from './ServiceActions'
+// import ServiceActions from './ServiceActions'
 
 interface ServiceTableProps {
   services: Service[]

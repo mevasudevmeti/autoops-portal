@@ -49,13 +49,29 @@ const formatJobType = (
 
 const JobsPage = () => {
   const {
-    data: jobs = [],
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ['jobs'],
-    queryFn: getJobs,
-  })
+  data: jobs = [],
+  isLoading,
+  isError,
+    } = useQuery({
+      queryKey: ['jobs'],
+      queryFn: getJobs,
+
+      refetchInterval: (query) => {
+        const currentJobs =
+          query.state.data ?? []
+
+        const hasActiveJob =
+          currentJobs.some(
+            (job) =>
+              job.status === 'PENDING' ||
+              job.status === 'RUNNING',
+          )
+
+        return hasActiveJob
+          ? 1000
+          : false
+      },
+    })
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
