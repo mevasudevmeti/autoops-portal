@@ -9,17 +9,21 @@ import com.autoops.portal.exception.ServiceNotFoundException;
 import com.autoops.portal.repository.ServiceRepository;
 import org.springframework.stereotype.Service;
 import com.autoops.portal.dto.UpdateServiceRequest;
+import com.autoops.portal.entity.AuditAction;
 import java.util.List;
 
 @Service
 public class ServiceService {
 
     private final ServiceRepository serviceRepository;
+    private final AuditService auditService;
 
     public ServiceService(
-            ServiceRepository serviceRepository
+            ServiceRepository serviceRepository,
+            AuditService auditService
     ) {
         this.serviceRepository = serviceRepository;
+        this.auditService = auditService;
     }
 
     public List<ServiceResponse> getAllServices() {
@@ -81,6 +85,13 @@ public class ServiceService {
 
         ServiceEntity savedService =
                 serviceRepository.save(service);
+        auditService.recordServiceEvent(
+                savedService,
+                AuditAction.SERVICE_CREATED,
+                "Service "
+                        + savedService.getName()
+                        + " registered"
+        );
 
         return toResponse(savedService);
     }
@@ -110,7 +121,10 @@ public class ServiceService {
                 .orElseThrow(
                         () -> new ServiceNotFoundException(id)
                 );
-
+        String oldName = service.getName();
+        String oldVersion = service.getVersion();
+        String oldHealthUrl = service.getHealthUrl();
+        var oldEnvironment = service.getEnvironment();
         String normalizedName = request.getName().trim();
         String normalizedVersion = request.getVersion().trim();
         String normalizedHealthUrl = request.getHealthUrl().trim();
@@ -127,13 +141,80 @@ public class ServiceService {
                     request.getEnvironment()
             );
         }
+        StringBuilder changes =
+                new StringBuilder();
+        if (!oldName.equals(normalizedName)) {
+            changes.append(
+                    "name: "
+                            + oldName
+                            + " -> "
+                            + normalizedName
+                            + "; "
+            );
+        }
 
+        if (
+                oldEnvironment
+                        != request.getEnvironment()
+        ) {
+            changes.append(
+                    "environment: "
+                            + oldEnvironment
+                            + " -> "
+                            + request.getEnvironment()
+                            + "; "
+            );
+        }
+
+        if (
+                !oldVersion.equals(
+                        normalizedVersion
+                )
+        ) {
+            changes.append(
+                    "version: "
+                            + oldVersion
+                            + " -> "
+                            + normalizedVersion
+                            + "; "
+            );
+        }
+
+        if (
+                oldHealthUrl == null
+                        || !oldHealthUrl.equals(
+                        normalizedHealthUrl
+                )
+        ) {
+            changes.append(
+                    "healthUrl: "
+                            + oldHealthUrl
+                            + " -> "
+                            + normalizedHealthUrl
+                            + "; "
+            );
+        }
         service.setName(normalizedName);
         service.setEnvironment(request.getEnvironment());
         service.setVersion(normalizedVersion);
         service.setHealthUrl(normalizedHealthUrl);
         ServiceEntity updated =
                 serviceRepository.save(service);
+        String auditMessage =
+                changes.length() > 0
+                        ? "Service "
+                        + updated.getName()
+                        + " updated: "
+                        + changes
+                        : "Service "
+                        + updated.getName()
+                        + " updated with no field changes";
+
+        auditService.recordServiceEvent(
+                updated,
+                AuditAction.SERVICE_UPDATED,
+                auditMessage
+        );
 
         return toResponse(updated);
     }
