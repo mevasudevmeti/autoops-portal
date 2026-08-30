@@ -4,6 +4,7 @@ import type {
   AuditAction,
   AuditEvent,
 } from '../types'
+import { getApiErrorMessage } from '../api/apiError'
 
 const actionClasses: Record<
   AuditAction,
@@ -48,6 +49,7 @@ const AuditPage = () => {
     data: auditEvents = [],
     isLoading,
     isError,
+    error,
   } = useQuery({
     queryKey: ['audit-events'],
     queryFn: getAuditEvents,
@@ -77,7 +79,7 @@ const AuditPage = () => {
       {isError && (
         <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-8 text-center">
           <p className="text-sm text-red-700">
-            Unable to load audit history.
+            {getApiErrorMessage(error)}
           </p>
         </div>
       )}

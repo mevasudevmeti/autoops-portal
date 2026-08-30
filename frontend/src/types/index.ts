@@ -57,3 +57,19 @@ export interface AuditEvent {
   message: string
   createdAt: string
 }
+
+export type JobLogLevel =
+  | 'INFO'
+  | 'WARN'
+  | 'ERROR'
+
+export interface JobLog {
+  id: number
+  jobId: number
+  serviceId: number
+  serviceName: string
+  jobType: JobType
+  level: JobLogLevel
+  message: string
+  createdAt: string
+}

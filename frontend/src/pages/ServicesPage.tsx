@@ -8,6 +8,7 @@ import {
 import ServiceTable from '../components/ServiceTable'
 import RegisterServiceForm from '../components/RegisterServiceForm'
 import EditServiceForm from '../components/EditServiceForm'
+import { getApiErrorMessage } from '../api/apiError'
 
 import type {
   CreateServiceInput,
@@ -246,8 +247,9 @@ const ServicesPage = () => {
 
       {updateServiceMutation.isError && (
         <p className="mt-3 text-sm text-red-600">
-          Unable to update service. Please
-          check the details and try again.
+          {getApiErrorMessage(
+            updateServiceMutation.error,
+          )}
         </p>
       )}
 
@@ -265,8 +267,9 @@ const ServicesPage = () => {
 
       {createServiceMutation.isError && (
         <p className="mt-3 text-sm text-red-600">
-          Unable to register service. Please
-          check the details and try again.
+          {getApiErrorMessage(
+            createServiceMutation.error,
+          )}
         </p>
       )}
 
@@ -419,13 +422,17 @@ const ServicesPage = () => {
 
         {deleteServiceMutation.isError && (
           <p className="mt-3 text-sm text-red-600">
-            Unable to delete service.
+            {getApiErrorMessage(
+              deleteServiceMutation.error,
+            )}
           </p>
         )}
 
         {healthCheckMutation.isError && (
           <p className="mt-3 text-sm text-red-600">
-            Unable to run health check.
+            {getApiErrorMessage(
+              healthCheckMutation.error,
+            )}
           </p>
         )}
       </section>

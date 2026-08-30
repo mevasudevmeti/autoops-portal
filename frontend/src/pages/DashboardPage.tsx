@@ -2,9 +2,10 @@ import MetricCard from '../components/MetricCard'
 import ServiceTable from '../components/ServiceTable'
 import { useQuery } from '@tanstack/react-query'
 import { getServices } from '../api/servicesApi'
+import { getApiErrorMessage } from '../api/apiError'
 
 const DashboardPage = () => {
-  const { data: services = [], isLoading, isError } = useQuery({
+  const { data: services = [], isLoading, isError, error } = useQuery({
   queryKey: ['services'],
   queryFn: getServices,
 })
@@ -81,7 +82,7 @@ const DashboardPage = () => {
         {isError && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
             <p className="text-sm text-red-700">
-              Unable to load services.
+              {getApiErrorMessage(error)}
             </p>
           </div>
         )}

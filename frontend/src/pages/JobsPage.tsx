@@ -4,6 +4,7 @@ import type {
   Job,
   JobStatus,
 } from '../types'
+import { getApiErrorMessage } from '../api/apiError'
 
 const statusClasses: Record<
   JobStatus,
@@ -52,6 +53,7 @@ const JobsPage = () => {
   data: jobs = [],
   isLoading,
   isError,
+  error,
     } = useQuery({
       queryKey: ['jobs'],
       queryFn: getJobs,
@@ -97,7 +99,7 @@ const JobsPage = () => {
       {isError && (
         <div className="mt-8 rounded-xl border border-red-200 bg-red-50 p-8 text-center">
           <p className="text-sm text-red-700">
-            Unable to load jobs.
+            {getApiErrorMessage(error)}
           </p>
         </div>
       )}
