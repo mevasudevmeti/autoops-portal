@@ -19,15 +19,18 @@ public class HealthCheckJobExecutor {
     private final JobRepository jobRepository;
     private final ServiceRepository serviceRepository;
     private final HealthCheckClient healthCheckClient;
+    private final JobLogService jobLogService;
 
     public HealthCheckJobExecutor(
             JobRepository jobRepository,
             ServiceRepository serviceRepository,
-            HealthCheckClient healthCheckClient
+            HealthCheckClient healthCheckClient,
+            JobLogService jobLogService
     ) {
         this.jobRepository = jobRepository;
         this.serviceRepository = serviceRepository;
         this.healthCheckClient = healthCheckClient;
+        this.jobLogService = jobLogService;
     }
 
     @Async
@@ -44,27 +47,106 @@ public class HealthCheckJobExecutor {
                 .findById(serviceId)
                 .orElseThrow();
 
-        job.setStatus(JobStatus.RUNNING);
-        job.setStartedAt(Instant.now());
-        job.setMessage("Checking service health");
+        try {
+            jobLogService.info(
+                    job,
+                    "Health check started"
+            );
 
-        jobRepository.save(job);
+            job.setStatus(JobStatus.RUNNING);
+            job.setStartedAt(Instant.now());
+            job.setMessage(
+                    "Checking service health"
+            );
 
-        HealthCheckResult result =
-                healthCheckClient.check(healthUrl);
+            jobRepository.save(job);
 
-        if (result.healthy()) {
-            job.setStatus(JobStatus.SUCCESS);
-            service.setStatus(ServiceStatus.HEALTHY);
-        } else {
-            job.setStatus(JobStatus.FAILED);
-            service.setStatus(ServiceStatus.DOWN);
+            jobLogService.info(
+                    job,
+                    "Sending health request to "
+                            + healthUrl
+            );
+
+            HealthCheckResult result =
+                    healthCheckClient.check(
+                            healthUrl
+                    );
+
+            if (result.healthy()) {
+                job.setStatus(
+                        JobStatus.SUCCESS
+                );
+
+                service.setStatus(
+                        ServiceStatus.HEALTHY
+                );
+
+                if (result.statusCode() != null) {
+                    jobLogService.info(
+                            job,
+                            "Received HTTP "
+                                    + result.statusCode()
+                    );
+                }
+
+                jobLogService.info(
+                        job,
+                        "Health check completed successfully"
+                );
+            } else {
+                job.setStatus(
+                        JobStatus.FAILED
+                );
+
+                service.setStatus(
+                        ServiceStatus.DOWN
+                );
+
+                if (result.statusCode() != null) {
+                    jobLogService.warn(
+                            job,
+                            "Health endpoint returned HTTP "
+                                    + result.statusCode()
+                    );
+                }
+
+                jobLogService.error(
+                        job,
+                        result.message()
+                );
+            }
+
+            job.setMessage(
+                    result.message()
+            );
+
+        } catch (Exception exception) {
+
+            job.setStatus(
+                    JobStatus.FAILED
+            );
+
+            job.setMessage(
+                    "Unexpected health check failure"
+            );
+
+            service.setStatus(
+                    ServiceStatus.DOWN
+            );
+
+            jobLogService.error(
+                    job,
+                    "Unexpected health check failure: "
+                            + exception.getMessage()
+            );
+        } finally {
+
+            job.setCompletedAt(
+                    Instant.now()
+            );
+
+            serviceRepository.save(service);
+            jobRepository.save(job);
         }
-
-        job.setMessage(result.message());
-        job.setCompletedAt(Instant.now());
-
-        serviceRepository.save(service);
-        jobRepository.save(job);
     }
 }
