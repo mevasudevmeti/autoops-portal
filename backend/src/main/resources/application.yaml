@@ -3,9 +3,20 @@ spring:
     name: portal
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/autoops
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/autoops}
     username: ${DB_USER:autoops}
     password: ${DB_PASSWORD:autoops}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 5m
 
   jpa:
     hibernate:
@@ -21,6 +32,10 @@ server:
   port: 8080
 
 management:
+  endpoint:
+    health:
+      show-details: always
+
   endpoints:
     web:
       exposure:
