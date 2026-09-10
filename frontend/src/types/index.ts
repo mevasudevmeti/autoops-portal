@@ -8,6 +8,7 @@ export interface Service {
   environment: Environment
   status: ServiceStatus
   version: string
+  healthUrl: string | null
   cpuUsage: number
   memoryUsage: number
   uptime: number
@@ -17,6 +18,7 @@ export interface CreateServiceInput {
   name: string
   environment: Environment
   version: string
+  healthUrl: string | null
 }
 
 
@@ -36,5 +38,38 @@ export interface Job {
   serviceName: string
   type: JobType
   status: JobStatus
+  message: string | null
+  createdAt: string
+  startedAt: string | null
+  completedAt: string | null
+}
+
+export type AuditAction =
+  | 'SERVICE_CREATED'
+  | 'SERVICE_UPDATED'
+  | 'SERVICE_ARCHIVED'
+
+export interface AuditEvent {
+  id: number
+  serviceId: number | null
+  serviceName: string | null
+  action: AuditAction
+  message: string
+  createdAt: string
+}
+
+export type JobLogLevel =
+  | 'INFO'
+  | 'WARN'
+  | 'ERROR'
+
+export interface JobLog {
+  id: number
+  jobId: number
+  serviceId: number
+  serviceName: string
+  jobType: JobType
+  level: JobLogLevel
+  message: string
   createdAt: string
 }

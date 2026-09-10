@@ -1,108 +1,204 @@
 import { useState } from 'react'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+
 import ServiceTable from '../components/ServiceTable'
-import { mockServices } from '../mocks/services'
+import RegisterServiceForm from '../components/RegisterServiceForm'
+import EditServiceForm from '../components/EditServiceForm'
+import { getApiErrorMessage } from '../api/apiError'
+
 import type {
   CreateServiceInput,
   Environment,
-  Job,
   Service,
   ServiceStatus,
 } from '../types'
-import RegisterServiceForm from '../components/RegisterServiceForm'
+
+import {
+  createService,
+  deleteService,
+  getServices,
+  runHealthCheck,
+  updateService,
+  type UpdateServiceInput,
+} from '../api/servicesApi'
 
 type EnvironmentFilter = 'ALL' | Environment
 type StatusFilter = 'ALL' | ServiceStatus
 
 const ServicesPage = () => {
-    const [jobs, setJobs] = useState<Job[]>([])
-    const [isRegistering, setIsRegistering] = useState(false)
-    const [services, setServices] = useState<Service[]>(mockServices)
-    const [searchTerm, setSearchTerm] = useState('')
-    const [environment, setEnvironment] = useState<EnvironmentFilter>('ALL')
-    const [status, setStatus] = useState<StatusFilter>('ALL')
+  const [isRegistering, setIsRegistering] =
+    useState(false)
 
-    const filteredServices = services.filter((service) => {
-    const matchesSearch = service.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+  const [editingService, setEditingService] =
+    useState<Service | null>(null)
 
-    const matchesEnvironment =
-      environment === 'ALL' ||
-      service.environment === environment
+  const [searchTerm, setSearchTerm] =
+    useState('')
 
-    const matchesStatus =
-      status === 'ALL' ||
-      service.status === status
+  const [environment, setEnvironment] =
+    useState<EnvironmentFilter>('ALL')
 
-    return (
-      matchesSearch &&
-      matchesEnvironment &&
-      matchesStatus
-    )
+  const [status, setStatus] =
+    useState<StatusFilter>('ALL')
+
+  const queryClient = useQueryClient()
+
+  const {
+    data: services = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['services'],
+    queryFn: getServices,
   })
 
-  const handleRestart = (service: Service) => {
-    const newJob: Job = {
-        id: Date.now(),
-        serviceId: service.id,
-        serviceName: service.name,
-        type: 'RESTART_SERVICE',
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-    }
+  const createServiceMutation = useMutation({
+    mutationFn: createService,
 
-    setJobs((currentJobs) => [
-        newJob,
-        ...currentJobs,
-    ])
-    }
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['services'],
+      })
 
-// temporary function to handle health check, in a real application this would likely involve an API call
-  const handleHealthCheck = (serviceId: number) => {
-    setServices((currentServices) =>
-        currentServices.map((service) =>
-        service.id === serviceId
-            ? {
-                ...service,
-                status: 'HEALTHY',
-            }
-            : service,
-        ),
-    )
-    }
+      await queryClient.invalidateQueries({
+        queryKey: ['audit-events'],
+      })
 
-  // temporary function to handle service registration, in a real application this would likely involve an API call
-  const handleRegisterService = (
-  input: CreateServiceInput,
-) => {
-  setServices((currentServices) => {
-    const nextId =
-      Math.max(
-        0,
-        ...currentServices.map(
-          (service) => service.id,
-        ),
-      ) + 1
-
-    const newService: Service = {
-      id: nextId,
-      name: input.name,
-      environment: input.environment,
-      version: input.version,
-      status: 'HEALTHY',
-      cpuUsage: 0,
-      memoryUsage: 0,
-      uptime: 100,
-    }
-
-    return [
-      ...currentServices,
-      newService,
-    ]
+      setIsRegistering(false)
+    },
   })
 
-  setIsRegistering(false)
-}
+  const updateServiceMutation = useMutation({
+    mutationFn: ({
+      serviceId,
+      input,
+    }: {
+      serviceId: number
+      input: UpdateServiceInput
+    }) => {
+      return updateService(
+        serviceId,
+        input,
+      )
+    },
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['services'],
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: ['audit-events'],
+        }),
+      ])
+
+      setEditingService(null)
+    },
+  })
+
+  const deleteServiceMutation = useMutation({
+    mutationFn: deleteService,
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['services'],
+      })
+    },
+  })
+
+  const healthCheckMutation = useMutation({
+    mutationFn: runHealthCheck,
+
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['services'],
+        }),
+
+        queryClient.invalidateQueries({
+          queryKey: ['jobs'],
+        }),
+      ])
+    },
+  })
+
+  const filteredServices =
+    services.filter((service) => {
+      const matchesSearch =
+        service.name
+          .toLowerCase()
+          .includes(
+            searchTerm.toLowerCase(),
+          )
+
+      const matchesEnvironment =
+        environment === 'ALL' ||
+        service.environment === environment
+
+      const matchesStatus =
+        status === 'ALL' ||
+        service.status === status
+
+      return (
+        matchesSearch &&
+        matchesEnvironment &&
+        matchesStatus
+      )
+    })
+
+  const handleRegisterService = async (
+    input: CreateServiceInput,
+  ) => {
+    await createServiceMutation.mutateAsync(
+      input,
+    )
+  }
+
+  const handleUpdateService = async (
+    serviceId: number,
+    input: UpdateServiceInput,
+  ) => {
+    await updateServiceMutation.mutateAsync({
+      serviceId,
+      input,
+    })
+  }
+
+  const handleEditService = (
+    service: Service,
+  ) => {
+    setIsRegistering(false)
+    setEditingService(service)
+  }
+
+  const handleDeleteService = async (
+    service: Service,
+  ) => {
+    const confirmed = window.confirm(
+      `Delete ${service.name} from ${service.environment}?`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    await deleteServiceMutation.mutateAsync(
+      service.id,
+    )
+  }
+
+  const handleHealthCheck = async (
+    serviceId: number,
+  ) => {
+    await healthCheckMutation.mutateAsync(
+      serviceId,
+    )
+  }
 
   const handleClearFilters = () => {
     setSearchTerm('')
@@ -112,32 +208,70 @@ const ServicesPage = () => {
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-                    Services
-                </h1>
-                <p className="mt-2 text-slate-600">
-                    Manage and monitor registered services.
-                </p>
-            </div>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            Services
+          </h1>
 
-            <button
-                type="button"
-                onClick={() => setIsRegistering(true)}
-                className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 sm:self-auto"
-            >
-                Register Service
-            </button>
-        </header>
-        {isRegistering && (
-            <RegisterServiceForm
-                onSubmit={handleRegisterService}
-                onCancel={() =>
-                setIsRegistering(false)
-                }
-            />
-        )}
+          <p className="mt-2 text-slate-600">
+            Manage and monitor registered
+            services.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEditingService(null)
+            setIsRegistering(true)
+          }}
+          className="self-start rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 sm:self-auto"
+        >
+          Register Service
+        </button>
+      </header>
+
+      {editingService && (
+        <EditServiceForm
+          service={editingService}
+          onSubmit={handleUpdateService}
+          onCancel={() =>
+            setEditingService(null)
+          }
+          isSubmitting={
+            updateServiceMutation.isPending
+          }
+        />
+      )}
+
+      {updateServiceMutation.isError && (
+        <p className="mt-3 text-sm text-red-600">
+          {getApiErrorMessage(
+            updateServiceMutation.error,
+          )}
+        </p>
+      )}
+
+      {isRegistering && (
+        <RegisterServiceForm
+          onSubmit={handleRegisterService}
+          onCancel={() =>
+            setIsRegistering(false)
+          }
+          isSubmitting={
+            createServiceMutation.isPending
+          }
+        />
+      )}
+
+      {createServiceMutation.isError && (
+        <p className="mt-3 text-sm text-red-600">
+          {getApiErrorMessage(
+            createServiceMutation.error,
+          )}
+        </p>
+      )}
 
       <section className="mt-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid gap-4 md:grid-cols-4">
@@ -154,7 +288,9 @@ const ServicesPage = () => {
               type="text"
               value={searchTerm}
               onChange={(event) =>
-                setSearchTerm(event.target.value)
+                setSearchTerm(
+                  event.target.value,
+                )
               }
               placeholder="Search services..."
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
@@ -174,15 +310,27 @@ const ServicesPage = () => {
               value={environment}
               onChange={(event) =>
                 setEnvironment(
-                  event.target.value as EnvironmentFilter,
+                  event.target
+                    .value as EnvironmentFilter,
                 )
               }
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
             >
-              <option value="ALL">All</option>
-              <option value="DEV">Development</option>
-              <option value="STAGING">Staging</option>
-              <option value="PROD">Production</option>
+              <option value="ALL">
+                All
+              </option>
+
+              <option value="DEV">
+                Development
+              </option>
+
+              <option value="STAGING">
+                Staging
+              </option>
+
+              <option value="PROD">
+                Production
+              </option>
             </select>
           </div>
 
@@ -199,22 +347,35 @@ const ServicesPage = () => {
               value={status}
               onChange={(event) =>
                 setStatus(
-                  event.target.value as StatusFilter,
+                  event.target
+                    .value as StatusFilter,
                 )
               }
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
             >
-              <option value="ALL">All</option>
-              <option value="HEALTHY">Healthy</option>
-              <option value="DEGRADED">Degraded</option>
-              <option value="DOWN">Down</option>
+              <option value="ALL">
+                All
+              </option>
+
+              <option value="HEALTHY">
+                Healthy
+              </option>
+
+              <option value="DEGRADED">
+                Degraded
+              </option>
+
+              <option value="DOWN">
+                Down
+              </option>
             </select>
           </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between">
           <p className="text-sm text-slate-500">
-            Showing {filteredServices.length} of{' '}
+            Showing{' '}
+            {filteredServices.length} of{' '}
             {services.length} services
           </p>
 
@@ -229,41 +390,50 @@ const ServicesPage = () => {
       </section>
 
       <section className="mt-6">
-        <ServiceTable
+        {isLoading && (
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
+            <p className="text-sm text-slate-500">
+              Loading services...
+            </p>
+          </div>
+        )}
+
+        {isError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+            <p className="text-sm text-red-700">
+              Unable to load services.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !isError && (
+          <ServiceTable
             services={filteredServices}
             showActions
-            onHealthCheck={handleHealthCheck}
-            onRestart={handleRestart}
-        />
-        {jobs.length > 0 && (
-        <section className="mt-8">
-            <h2 className="text-lg font-semibold text-slate-900">
-            Recent Jobs
-            </h2>
+            onEdit={handleEditService}
+            onDelete={
+              handleDeleteService
+            }
+            onHealthCheck={
+              handleHealthCheck
+            }
+          />
+        )}
 
-            <div className="mt-4 space-y-3">
-            {jobs.map((job) => (
-                <div
-                key={job.id}
-                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                >
-                <div>
-                    <p className="font-medium text-slate-900">
-                    {job.serviceName}
-                    </p>
+        {deleteServiceMutation.isError && (
+          <p className="mt-3 text-sm text-red-600">
+            {getApiErrorMessage(
+              deleteServiceMutation.error,
+            )}
+          </p>
+        )}
 
-                    <p className="mt-1 text-sm text-slate-500">
-                    {job.type}
-                    </p>
-                </div>
-
-                <span className="text-sm font-semibold text-amber-600">
-                    {job.status}
-                </span>
-                </div>
-            ))}
-            </div>
-        </section>
+        {healthCheckMutation.isError && (
+          <p className="mt-3 text-sm text-red-600">
+            {getApiErrorMessage(
+              healthCheckMutation.error,
+            )}
+          </p>
         )}
       </section>
     </main>

@@ -1,26 +1,31 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import type {
   CreateServiceInput,
   Environment,
 } from '../types'
 
 interface RegisterServiceFormProps {
-  onSubmit: (service: CreateServiceInput) => void
+  onSubmit: ( service: CreateServiceInput ) => Promise<void>
+
   onCancel: () => void
+  isSubmitting?: boolean
 }
 
 interface FormErrors {
   name?: string
   version?: string
+  healthUrl?: string
 }
 
 const RegisterServiceForm = ({
   onSubmit,
   onCancel,
+  isSubmitting = false,
 }: RegisterServiceFormProps) => {
     const [name, setName] = useState('')
     const [environment, setEnvironment] = useState<Environment>('DEV')
     const [version, setVersion] = useState('')
+    const [healthUrl, setHealthUrl] = useState('')
     const [errors, setErrors] = useState<FormErrors>({})
     const validateForm = () => {
         const newErrors: FormErrors = {}
@@ -32,31 +37,48 @@ const RegisterServiceForm = ({
         if (!version.trim()) {
             newErrors.version = 'Version is required.'
         }
+        if (!healthUrl.trim()) {
+            newErrors.healthUrl =
+              'Health URL is required.'
+          } else if (
+            !/^https?:\/\/.+/.test(
+              healthUrl.trim(),
+            )
+          ) {
+            newErrors.healthUrl =
+              'Enter a valid HTTP or HTTPS URL.'
+          }
 
         setErrors(newErrors)
 
         return Object.keys(newErrors).length === 0
     }
-    const handleSubmit = ( event: FormEvent<HTMLFormElement> ) => {
+    const handleSubmit = async ( event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
 
         const isValid = validateForm()
 
         if (!isValid) {
-            return
+          return
         }
 
-        onSubmit({
+        try {
+          await onSubmit({
             name: name.trim(),
             environment,
             version: version.trim(),
-        })
+            healthUrl: healthUrl.trim() || null,
+          })
 
-        setName('')
-        setEnvironment('DEV')
-        setVersion('')
-        setErrors({})
+          setName('')
+          setEnvironment('DEV')
+          setVersion('')
+          setHealthUrl('')
+          setErrors({})
+        } catch {
+          // Parent handles the API error.
         }
+      }
 
   return (
     <form
@@ -73,7 +95,7 @@ const RegisterServiceForm = ({
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div>
           <label
             htmlFor="service-name"
@@ -180,6 +202,49 @@ const RegisterServiceForm = ({
             </p>
             )}
         </div>
+        <div>
+          <label
+            htmlFor="service-health-url"
+            className="mb-2 block text-sm font-medium text-slate-700"
+          >
+            Health URL
+          </label>
+
+          <input
+            id="service-health-url"
+            type="url"
+            value={healthUrl}
+            onChange={(event) => {
+              setHealthUrl(event.target.value)
+
+              if (errors.healthUrl) {
+                setErrors((currentErrors) => ({
+                  ...currentErrors,
+                  healthUrl: undefined,
+                }))
+              }
+            }}
+            placeholder="http://localhost:8080/actuator/health"
+            aria-invalid={
+              Boolean(errors.healthUrl)
+            }
+            aria-describedby={
+              errors.healthUrl
+                ? 'service-health-url-error'
+                : undefined
+            }
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+          />
+
+          {errors.healthUrl && (
+            <p
+              id="service-health-url-error"
+              className="mt-1 text-sm text-red-600"
+            >
+              {errors.healthUrl}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="mt-6 flex justify-end gap-3">
@@ -193,9 +258,12 @@ const RegisterServiceForm = ({
 
         <button
           type="submit"
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          disabled={isSubmitting}
+          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Register Service
+          {isSubmitting
+            ? 'Registering...'
+            : 'Register Service'}
         </button>
       </div>
     </form>
