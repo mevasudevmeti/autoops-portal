@@ -10,6 +10,8 @@ import com.autoops.portal.repository.ServiceRepository;
 import org.springframework.stereotype.Service;
 import com.autoops.portal.dto.UpdateServiceRequest;
 import com.autoops.portal.entity.AuditAction;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import java.util.List;
 
 @Service
@@ -33,6 +35,7 @@ public class ServiceService {
                 .toList();
     }
 
+    @Cacheable(cacheNames = "services", key = "#id")
     public ServiceResponse getServiceById(Long id) {
         ServiceEntity service = serviceRepository
                 .findById(id)
@@ -111,7 +114,7 @@ public class ServiceService {
                 service.getUptime()
         );
     }
-
+    @CacheEvict(cacheNames = "services", key = "#id")
     public ServiceResponse updateService(
             Long id,
             UpdateServiceRequest request
@@ -219,6 +222,7 @@ public class ServiceService {
         return toResponse(updated);
     }
 
+    @CacheEvict(cacheNames = "services", key = "#id")
     public void deleteService(Long id) {
         ServiceEntity service = serviceRepository
                 .findById(id)

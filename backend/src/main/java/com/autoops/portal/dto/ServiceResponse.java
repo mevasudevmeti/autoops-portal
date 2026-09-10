@@ -3,7 +3,9 @@ package com.autoops.portal.dto;
 import com.autoops.portal.entity.Environment;
 import com.autoops.portal.entity.ServiceStatus;
 
-public class ServiceResponse {
+import java.io.Serializable;
+
+public class ServiceResponse implements Serializable {
 
     private Long id;
     private String name;
